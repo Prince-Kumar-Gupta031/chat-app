@@ -4,12 +4,12 @@ import { requireAdmin } from '@/lib/jwt';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     await requireAdmin();
 
-    const { userId } = params;
+    const { userId } = await params;
 
     // Update user status to SUSPENDED
     const user = await db.user.update({

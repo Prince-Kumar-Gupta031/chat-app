@@ -4,11 +4,13 @@ import { requireAuth } from '@/lib/jwt';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { conversationId: string } }
+  { params }: { params: Promise<{ conversationId: string }> } // FIXED
 ) {
   try {
     await requireAuth();
-    const { conversationId } = params;
+
+    const { conversationId } = await params; // FIXED
+
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get('limit') || '50');
     const before = searchParams.get('before');
@@ -21,7 +23,9 @@ export async function GET(
     }
 
     if (search) {
-      where.content = { contains: search, mode: 'insensitive' };
+      where.content = {
+        contains: search,
+      };
     }
 
     const messages = await db.message.findMany({
@@ -42,7 +46,9 @@ export async function GET(
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: {
+        createdAt: 'desc',
+      },
       take: limit,
     });
 
@@ -59,6 +65,7 @@ export async function GET(
     }
 
     console.error('Get messages error:', error);
+
     return NextResponse.json(
       { error: 'Failed to get messages' },
       { status: 500 }
@@ -68,13 +75,23 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { conversationId: string } }
+  { params }: { params: Promise<{ conversationId: string }> } // FIXED
 ) {
   try {
     const session = await requireAuth();
-    const { conversationId } = params;
+
+    const { conversationId } = await params; // FIXED
+
     const body = await req.json();
-    const { content, receiverId, messageType = 'TEXT', fileUrl, fileName, fileSize } = body;
+
+    const {
+      content,
+      receiverId,
+      messageType = 'TEXT',
+      fileUrl,
+      fileName,
+      fileSize,
+    } = body;
 
     if (!content && !fileUrl) {
       return NextResponse.json(
@@ -83,9 +100,10 @@ export async function POST(
       );
     }
 
-    // Get conversation
     const conversation = await db.conversation.findUnique({
-      where: { id: conversationId },
+      where: {
+        id: conversationId,
+      },
     });
 
     if (!conversation) {
@@ -95,15 +113,16 @@ export async function POST(
       );
     }
 
-    // Verify user is part of conversation
-    if (conversation.user1Id !== session.userId && conversation.user2Id !== session.userId) {
+    if (
+      conversation.user1Id !== session.userId &&
+      conversation.user2Id !== session.userId
+    ) {
       return NextResponse.json(
         { error: 'Not authorized to send message in this conversation' },
         { status: 403 }
       );
     }
 
-    // Create message
     const message = await db.message.create({
       data: {
         conversationId,
@@ -134,20 +153,28 @@ export async function POST(
       },
     });
 
-    // Update conversation
-    const actualReceiverId = conversation.user1Id === session.userId ? conversation.user2Id : conversation.user1Id;
+    const actualReceiverId =
+      conversation.user1Id === session.userId
+        ? conversation.user2Id
+        : conversation.user1Id;
+
     await db.conversation.update({
-      where: { id: conversationId },
+      where: {
+        id: conversationId,
+      },
       data: {
         lastMessage: content || fileName || 'Attachment',
         lastMessageAt: new Date(),
-        [conversation.user1Id === session.userId ? 'user2Unread' : 'user1Unread']: {
+        [
+          conversation.user1Id === session.userId
+            ? 'user2Unread'
+            : 'user1Unread'
+        ]: {
           increment: 1,
         },
       },
     });
 
-    // Create notification for receiver
     await db.notification.create({
       data: {
         userId: actualReceiverId,
@@ -171,6 +198,7 @@ export async function POST(
     }
 
     console.error('Send message error:', error);
+
     return NextResponse.json(
       { error: 'Failed to send message' },
       { status: 500 }
