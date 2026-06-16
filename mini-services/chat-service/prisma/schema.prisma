@@ -1,0 +1,142 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  PDF
+  DOCX
+  XLSX
+  PPTX
+  FILE
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  USER_APPROVED
+  USER_REJECTED
+  USER_SUSPENDED
+}
+
+model User {
+  id              String      @id @default(cuid())
+  email           String      @unique
+  password        String
+  name            String
+  employeeId      String      @unique
+  department      String
+  role            UserRole    @default(USER)
+  status          UserStatus  @default(PENDING)
+  profilePicture  String?
+  lastSeen        DateTime?
+  isOnline        Boolean     @default(false)
+
+  sentMessages    Message[]   @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+  conversation1   Conversation[] @relation("User1Conversations")
+  conversation2   Conversation[] @relation("User2Conversations")
+  notifications   Notification[]
+  uploadedFiles   File[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model Conversation {
+  id                String    @id @default(cuid())
+  user1Id           String
+  user2Id           String
+  lastMessage       String?
+  lastMessageAt     DateTime?
+  user1Unread       Int       @default(0)
+  user2Unread       Int       @default(0)
+
+  user1             User      @relation("User1Conversations", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2             User      @relation("User2Conversations", fields: [user2Id], references: [id], onDelete: Cascade)
+  messages          Message[]
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([user1Id, user2Id])
+}
+
+model Message {
+  id              String          @id @default(cuid())
+  conversationId  String
+  senderId        String
+  receiverId      String
+  content         String?
+  messageType     MessageType     @default(TEXT)
+  fileUrl         String?
+  fileName        String?
+  fileSize        Int?
+  readStatus      MessageStatus   @default(SENT)
+  isRead          Boolean         @default(false)
+  readAt          DateTime?
+
+  conversation    Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender          User            @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver        User            @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Notification {
+  id          String            @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean           @default(false)
+  relatedId   String?
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime          @default(now())
+}
+
+model File {
+  id          String      @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  url         String
+  uploadedBy  String
+
+  uploader    User        @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime    @default(now())
+}
