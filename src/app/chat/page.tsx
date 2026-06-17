@@ -95,9 +95,9 @@ export default function ChatPage() {
         await loadNotifications();
 
         // Initialize socket
-        const newSocket = io(`/?XTransformPort=${SOCKET_PORT}`, {
-          transports: ['websocket', 'polling'],
-        });
+        const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3003', {
+  transports: ['websocket', 'polling'],
+});
 
         newSocket.on('connect', () => {
           console.log('Connected to socket');
