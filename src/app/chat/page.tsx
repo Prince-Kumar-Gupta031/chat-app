@@ -96,7 +96,7 @@ export default function ChatPage() {
 
         // Initialize socket
         const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3003', {
-  transports: ['websocket', 'polling'],
+  transports: ['polling','websocket'],
 });
 
         newSocket.on('connect', () => {
