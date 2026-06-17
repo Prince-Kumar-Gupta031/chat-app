@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
   },
   openGraph: {
-    title: "DRDO Chat App",
+    title: "Secure Chat App",
     description:
       "Secure internal communication platform for authorized users.",
     url: "https://chat-app-beta-sable-17.vercel.app",
