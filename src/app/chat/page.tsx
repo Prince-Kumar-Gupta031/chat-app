@@ -74,6 +74,7 @@ export default function ChatPage() {
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -213,8 +214,11 @@ export default function ChatPage() {
   }, [showNewChatDialog, userSearch]);
 
   const selectConversation = async (conversation: any) => {
-    setCurrentConversation(conversation);
-    await loadMessages(conversation.id);
+  setShowMobileChat(true);
+
+  setCurrentConversation(conversation);
+  await loadMessages(conversation.id);
+    
 
     // Mark messages as read
     if (socket) {
@@ -400,7 +404,11 @@ export default function ChatPage() {
   return (
     <div className="h-screen flex bg-background">
       {/* Sidebar */}
-      <div className="w-full md:w-96 border-r flex flex-col bg-muted/10">
+      <div
+  className={`${
+    showMobileChat ? 'hidden md:flex' : 'flex'
+  } w-full md:w-96 border-r flex-col bg-muted/10`}
+>
         {/* Sidebar Header */}
         <div className="p-4 bg-emerald-600 text-white">
           <div className="flex items-center justify-between mb-4">
@@ -566,13 +574,23 @@ export default function ChatPage() {
       </div>
 
       {/* Chat Area */}
-      <div className="hidden md:flex flex-1 flex-col">
+      <div
+  className={`${
+    showMobileChat ? 'flex' : 'hidden'
+  } md:flex flex-1 flex-col`}
+>
         {currentConversation ? (
           <>
             {/* Chat Header */}
             <div className="p-4 border-b bg-background">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
+  <button
+    onClick={() => setShowMobileChat(false)}
+    className="md:hidden text-xl font-bold"
+  >
+    ←
+  </button>
                   <Avatar>
                     <AvatarImage src={getOtherUser(currentConversation).profilePicture} />
                     <AvatarFallback>
